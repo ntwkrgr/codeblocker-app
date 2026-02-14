@@ -68,8 +68,15 @@ struct AddAreaCodeView: View {
             return
         }
 
-        if BlockedAreaCodesManager.shared.blockedAreaCodes.contains(code) {
+        let manager = BlockedAreaCodesManager.shared
+        if manager.blockedAreaCodes.contains(code) {
             errorMessage = "Area code \(code) is already blocked."
+            showingError = true
+            return
+        }
+
+        if manager.blockedAreaCodes.count >= BlockedAreaCodesManager.maxBlockedAreaCodes {
+            errorMessage = "You can block up to \(BlockedAreaCodesManager.maxBlockedAreaCodes) area codes. Remove an existing area code before adding a new one."
             showingError = true
             return
         }

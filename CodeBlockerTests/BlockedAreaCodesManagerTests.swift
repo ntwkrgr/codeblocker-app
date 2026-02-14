@@ -67,6 +67,17 @@ final class BlockedAreaCodesManagerTests: XCTestCase {
         XCTAssertEqual(manager.blockedAreaCodes, ["212"])
     }
 
+    func testAddAreaCodeRespectsMaxLimit() {
+        for i in 2...4 {
+            manager.addAreaCode("\(i)00")
+        }
+        XCTAssertEqual(manager.blockedAreaCodes.count, BlockedAreaCodesManager.maxBlockedAreaCodes)
+        let added = manager.addAreaCode("500")
+        XCTAssertFalse(added)
+        XCTAssertEqual(manager.blockedAreaCodes.count, BlockedAreaCodesManager.maxBlockedAreaCodes)
+        XCTAssertFalse(manager.blockedAreaCodes.contains("500"))
+    }
+
     func testRemoveAreaCode() {
         manager.addAreaCode("212")
         manager.addAreaCode("415")
@@ -96,14 +107,14 @@ final class BlockedAreaCodesManagerTests: XCTestCase {
     func testPhoneNumberRangeForValidAreaCode() {
         let range = BlockedAreaCodesManager.phoneNumberRange(for: "212")
         XCTAssertNotNil(range)
-        XCTAssertEqual(range?.start, 12120000000)
+        XCTAssertEqual(range?.start, 12122000000)
         XCTAssertEqual(range?.end, 12129999999)
     }
 
     func testPhoneNumberRangeFor800() {
         let range = BlockedAreaCodesManager.phoneNumberRange(for: "800")
         XCTAssertNotNil(range)
-        XCTAssertEqual(range?.start, 18000000000)
+        XCTAssertEqual(range?.start, 18002000000)
         XCTAssertEqual(range?.end, 18009999999)
     }
 
@@ -119,10 +130,19 @@ final class BlockedAreaCodesManagerTests: XCTestCase {
         XCTAssertLessThan(range212.end, range213.start)
     }
 
-    func testPhoneNumberRangeContains10MillionNumbers() {
+    func testPhoneNumberRangeContains8MillionNumbers() {
         let range = BlockedAreaCodesManager.phoneNumberRange(for: "415")!
         let count = range.end - range.start + 1
-        XCTAssertEqual(count, 10_000_000)
+        XCTAssertEqual(count, 8_000_000)
+    }
+
+    func testPhoneNumberRangeExcludesInvalidExchanges() {
+        // Exchanges 000-199 are invalid in NANP (first digit must be 2-9)
+        let range = BlockedAreaCodesManager.phoneNumberRange(for: "212")!
+        // +1-212-200-0000 should be the start (exchange 200)
+        XCTAssertEqual(range.start, 12122000000)
+        // +1-212-199-9999 should NOT be included
+        XCTAssertGreaterThan(range.start, 12121999999)
     }
 
     func testSortedAreaCodesProduceAscendingRanges() {

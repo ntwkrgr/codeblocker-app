@@ -9,6 +9,14 @@ class BlockedAreaCodesManager {
     /// The App Group suite name used to share data between the app and extension.
     static let suiteName = "group.com.codeblocker.shared"
 
+    /// Maximum number of area codes that can be blocked simultaneously.
+    /// Each area code generates ~8 million blocking entries; CallKit imposes a
+    /// system-level cap on the total number of entries a Call Directory extension
+    /// may register.  Exceeding this cap triggers error 5
+    /// (`maximumEntriesExceeded`).  A limit of 3 area codes (~24 M entries) stays
+    /// within the budget on iOS 16+ devices.
+    static let maxBlockedAreaCodes = 3
+
     /// The UserDefaults key for storing blocked area codes.
     private let key = "blockedAreaCodes"
 
@@ -30,11 +38,16 @@ class BlockedAreaCodesManager {
 
     /// Adds an area code to the blocked list.
     /// - Parameter code: A 3-digit area code string.
-    func addAreaCode(_ code: String) {
+    /// - Returns: `true` if the code was added, `false` if it was a duplicate
+    ///   or the maximum number of blocked area codes has been reached.
+    @discardableResult
+    func addAreaCode(_ code: String) -> Bool {
         var codes = blockedAreaCodes
-        guard !codes.contains(code) else { return }
+        guard !codes.contains(code) else { return false }
+        guard codes.count < BlockedAreaCodesManager.maxBlockedAreaCodes else { return false }
         codes.append(code)
         blockedAreaCodes = codes
+        return true
     }
 
     /// Removes an area code from the blocked list.
@@ -66,15 +79,19 @@ class BlockedAreaCodesManager {
     }
 
     /// Returns the phone number range for a given area code in E.164 format.
-    /// North American numbers: +1AAANNNNNNN where AAA is the area code.
+    /// North American numbers: +1AAANXXXXXX where AAA is the area code and
+    /// the exchange (NXX) starts with digits 2-9 per the North American
+    /// Numbering Plan.  Exchanges 000-199 are invalid and excluded.
     static func phoneNumberRange(for areaCode: String) -> (start: Int64, end: Int64)? {
         guard isValidAreaCode(areaCode), let areaCodeNum = Int64(areaCode) else {
             return nil
         }
-        // E.164 format: +1 AAA NNN NNNN → stored as Int64
+        // E.164 format: +1 AAA NXX XXXX → stored as Int64
         // Country code 1 base: 10_000_000_000, area code multiplier: 10_000_000
-        let start: Int64 = 10_000_000_000 + (areaCodeNum * 10_000_000)
-        let end: Int64 = start + 9_999_999
+        // Valid exchanges start at 200 (offset 2_000_000)
+        let base: Int64 = 10_000_000_000 + (areaCodeNum * 10_000_000)
+        let start: Int64 = base + 2_000_000
+        let end: Int64 = base + 9_999_999
         return (start, end)
     }
 }
