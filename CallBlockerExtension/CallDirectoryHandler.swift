@@ -20,27 +20,16 @@ class CallDirectoryHandler: CXCallDirectoryProvider {
     /// Adds blocking entries for all phone numbers in the given area codes.
     /// Numbers are added in ascending order as required by CXCallDirectoryProvider.
     ///
-    /// Note: Each area code covers 10 million phone numbers. The system may impose
-    /// time limits on extension execution, so blocking many area codes simultaneously
-    /// could cause the extension to be terminated. Consider limiting the number of
-    /// blocked area codes for optimal performance.
+    /// Numbers are streamed directly to the context to avoid exceeding the
+    /// extension's memory limit. Because the area codes are sorted and their
+    /// phone-number ranges are non-overlapping, sequential iteration already
+    /// produces the required ascending order.
     private func addBlockingEntries(for areaCodes: [String], to context: CXCallDirectoryExtensionContext) {
-        var allNumbers = [Int64]()
-        let chunkSize: Int64 = 1_000_000
-        for areaCode in areaCodes {
+        for areaCode in areaCodes.sorted() {
             guard let range = BlockedAreaCodesManager.phoneNumberRange(for: areaCode) else { continue }
-            var start = range.start
-            // Process blocking in 1-million-number chunks for the entire 10 million range
-            while start <= range.end {
-                let chunkEnd = min(start + chunkSize - 1, range.end)
-                for number in start...chunkEnd {
-                    allNumbers.append(number)
-                }
-                start += chunkSize
+            for number in range.start...range.end {
+                context.addBlockingEntry(withNextSequentialPhoneNumber: number)
             }
-        }
-        for number in allNumbers.sorted() {
-            context.addBlockingEntry(withNextSequentialPhoneNumber: number)
         }
     }
 }

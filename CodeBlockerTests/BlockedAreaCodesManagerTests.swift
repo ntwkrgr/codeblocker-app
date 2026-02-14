@@ -124,4 +124,17 @@ final class BlockedAreaCodesManagerTests: XCTestCase {
         let count = range.end - range.start + 1
         XCTAssertEqual(count, 10_000_000)
     }
+
+    func testSortedAreaCodesProduceAscendingRanges() {
+        let codes = ["800", "212", "415"]
+        let sorted = codes.sorted()
+        let ranges = sorted.compactMap { BlockedAreaCodesManager.phoneNumberRange(for: $0) }
+
+        XCTAssertEqual(ranges.count, sorted.count)
+        for i in 1..<ranges.count {
+            // Each range starts after the previous range ends
+            XCTAssertGreaterThan(ranges[i].start, ranges[i - 1].end,
+                "Range for \(sorted[i]) should start after range for \(sorted[i - 1])")
+        }
+    }
 }
