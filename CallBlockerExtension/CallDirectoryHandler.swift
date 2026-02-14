@@ -19,6 +19,11 @@ class CallDirectoryHandler: CXCallDirectoryProvider {
 
     /// Adds blocking entries for all phone numbers in the given area codes.
     /// Numbers are added in ascending order as required by CXCallDirectoryProvider.
+    ///
+    /// Note: Each area code covers 10 million phone numbers. The system may impose
+    /// time limits on extension execution, so blocking many area codes simultaneously
+    /// could cause the extension to be terminated. Consider limiting the number of
+    /// blocked area codes for optimal performance.
     private func addBlockingEntries(for areaCodes: [String], to context: CXCallDirectoryExtensionContext) {
         // Area codes are already sorted from BlockedAreaCodesManager
         for areaCode in areaCodes {

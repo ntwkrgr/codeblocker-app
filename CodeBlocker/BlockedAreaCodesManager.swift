@@ -71,7 +71,9 @@ class BlockedAreaCodesManager {
         guard isValidAreaCode(areaCode), let areaCodeNum = Int64(areaCode) else {
             return nil
         }
-        let start: Int64 = 1_000_000_0000 + (areaCodeNum * 1_000_0000)
+        // E.164 format: +1 AAA NNN NNNN → stored as Int64
+        // Country code 1 base: 10_000_000_000, area code multiplier: 10_000_000
+        let start: Int64 = 10_000_000_000 + (areaCodeNum * 10_000_000)
         let end: Int64 = start + 9_999_999
         return (start, end)
     }
