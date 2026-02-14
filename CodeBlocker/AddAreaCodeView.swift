@@ -14,7 +14,7 @@ struct AddAreaCodeView: View {
                 Section {
                     TextField("Area Code (e.g. 212)", text: $areaCode)
                         .keyboardType(.numberPad)
-                        .onChange(of: areaCode) { newValue in
+                        .onChange(of: areaCode) { oldValue, newValue in
                             if newValue.count > 3 {
                                 areaCode = String(newValue.prefix(3))
                             }

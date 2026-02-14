@@ -25,15 +25,22 @@ class CallDirectoryHandler: CXCallDirectoryProvider {
     /// could cause the extension to be terminated. Consider limiting the number of
     /// blocked area codes for optimal performance.
     private func addBlockingEntries(for areaCodes: [String], to context: CXCallDirectoryExtensionContext) {
-        // Area codes are already sorted from BlockedAreaCodesManager
+        var allNumbers = [Int64]()
+        let chunkSize: Int64 = 1_000_000
         for areaCode in areaCodes {
-            guard let range = BlockedAreaCodesManager.phoneNumberRange(for: areaCode) else {
-                continue
+            guard let range = BlockedAreaCodesManager.phoneNumberRange(for: areaCode) else { continue }
+            var start = range.start
+            // Process blocking in 1-million-number chunks for the entire 10 million range
+            while start <= range.end {
+                let chunkEnd = min(start + chunkSize - 1, range.end)
+                for number in start...chunkEnd {
+                    allNumbers.append(number)
+                }
+                start += chunkSize
             }
-
-            for number in range.start...range.end {
-                context.addBlockingEntry(withNextSequentialPhoneNumber: number)
-            }
+        }
+        for number in allNumbers.sorted() {
+            context.addBlockingEntry(withNextSequentialPhoneNumber: number)
         }
     }
 }
