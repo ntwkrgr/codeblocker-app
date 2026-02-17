@@ -2,7 +2,7 @@ import SwiftUI
 import CallKit
 
 struct ContentView: View {
-    @State private var blockedAreaCodes: [String] = []
+    @State private var blockedPrefixes: [String] = []
     @State private var showingAddSheet = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
@@ -15,10 +15,10 @@ struct ContentView: View {
             VStack {
                 extensionStatusBanner
 
-                if blockedAreaCodes.isEmpty {
+                if blockedPrefixes.isEmpty {
                     emptyStateView
                 } else {
-                    areaCodeList
+                    prefixList
                 }
 
                 applyChangesButton
@@ -35,9 +35,9 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showingAddSheet) {
-                AddAreaCodeView { newCode in
-                    manager.addAreaCode(newCode)
-                    loadAreaCodes()
+                AddAreaCodeView { newPrefix in
+                    manager.addPrefix(newPrefix)
+                    loadPrefixes()
                 }
             }
             .alert("CodeBlocker", isPresented: $showingAlert) {
@@ -46,7 +46,7 @@ struct ContentView: View {
                 Text(alertMessage)
             }
             .onAppear {
-                loadAreaCodes()
+                loadPrefixes()
                 checkExtensionStatus()
             }
         }
@@ -73,10 +73,10 @@ struct ContentView: View {
                 Image(systemName: "phone.down.circle")
                     .font(.system(size: 60))
                     .foregroundColor(.secondary)
-                Text("No Blocked Area Codes")
+                Text("No Blocked Numbers")
                     .font(.title2)
                     .fontWeight(.semibold)
-                Text("Tap + to add area codes you want to block from calling.")
+                Text("Tap + to add area codes or number ranges you want to block.")
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -86,21 +86,21 @@ struct ContentView: View {
         }
     }
 
-    private var areaCodeList: some View {
+    private var prefixList: some View {
         List {
-            ForEach(blockedAreaCodes, id: \.self) { code in
+            ForEach(blockedPrefixes, id: \.self) { prefix in
                 HStack {
                     Image(systemName: "phone.down.fill")
                         .foregroundColor(.red)
-                    Text("Area Code \(code)")
+                    Text(BlockedAreaCodesManager.prefixLabel(prefix))
                         .font(.body)
                     Spacer()
-                    Text("(\(code)) XXX-XXXX")
+                    Text(BlockedAreaCodesManager.formatPrefix(prefix))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .onDelete(perform: deleteAreaCodes)
+            .onDelete(perform: deletePrefixes)
         }
     }
 
@@ -122,15 +122,15 @@ struct ContentView: View {
 
     // MARK: - Actions
 
-    private func loadAreaCodes() {
-        blockedAreaCodes = manager.blockedAreaCodes
+    private func loadPrefixes() {
+        blockedPrefixes = manager.blockedPrefixes
     }
 
-    private func deleteAreaCodes(at offsets: IndexSet) {
+    private func deletePrefixes(at offsets: IndexSet) {
         for index in offsets {
-            manager.removeAreaCode(blockedAreaCodes[index])
+            manager.removePrefix(blockedPrefixes[index])
         }
-        loadAreaCodes()
+        loadPrefixes()
     }
 
     private func applyChanges() {
@@ -139,7 +139,7 @@ struct ContentView: View {
                 if let error = error {
                     alertMessage = "Failed to apply changes: \(error.localizedDescription)"
                 } else {
-                    alertMessage = "Changes applied successfully! Blocked area codes are now active."
+                    alertMessage = "Changes applied successfully! Blocked numbers are now active."
                 }
                 showingAlert = true
                 checkExtensionStatus()
