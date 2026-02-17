@@ -22,6 +22,7 @@ class BlockedAreaCodesManager {
     static let maxTotalEntries: Int64 = 24_000_000
 
     /// The UserDefaults key for storing blocked prefixes.
+    /// Kept as "blockedAreaCodes" for backward compatibility with existing data.
     private let key = "blockedAreaCodes"
 
     private let userDefaults: UserDefaults?
@@ -129,7 +130,13 @@ class BlockedAreaCodesManager {
         case 4, 5, 6:
             let suffix = String(prefix.dropFirst(3))
             guard let suffixNum = Int64(suffix) else { return nil }
-            let multiplier: Int64 = [1_000_000, 100_000, 10_000][prefix.count - 4]
+            let multiplier: Int64
+            switch prefix.count {
+            case 4: multiplier = 1_000_000
+            case 5: multiplier = 100_000
+            case 6: multiplier = 10_000
+            default: return nil
+            }
             let start = base + suffixNum * multiplier
             let end = start + multiplier - 1
             return (start, end)
